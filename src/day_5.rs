@@ -2,8 +2,6 @@
 
 use std::{collections::{HashMap, HashSet}, fs::File, io::{BufRead, BufReader}};
 
-use colored::Colorize;
-
 pub fn do_part1() -> anyhow::Result<i64> {
     println!("Day 5 - Part 1:");
     
