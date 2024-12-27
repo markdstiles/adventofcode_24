@@ -74,5 +74,73 @@ pub fn do_part2() -> anyhow::Result<i64> {
     let file = File::open(input_file.clone())?;
     let reader = BufReader::new(file);
 
-    Ok(0)
+    let mut antenna_locations: HashMap<char, Vec<(i32, i32)>> = HashMap::new();
+
+    let lines: Vec<String> = reader.lines().map(|l| l.unwrap()).collect();
+    let map_width = lines[0].len() as i32;
+    let map_height = lines.len() as i32;
+
+    lines.iter().enumerate().for_each(|(row, line)| {
+        line.chars().enumerate().for_each(|(col, c)| {
+            if c != '.' {
+                antenna_locations.entry(c)
+                    .and_modify(|v| v.push((col as i32, row as i32)))
+                    .or_insert(Vec::from([(col as i32, row as i32)]));
+            }
+        })
+    });
+
+    let mut antinodes: HashSet<(i32, i32)> = HashSet::new();
+
+    //Calculate position of anti-nodes
+    for (_, locations) in antenna_locations.iter() {
+         for i in 0..locations.len()-1 {
+            let first = locations[i];
+            for second in locations[i+1..].iter() {
+                //We don't need to calculate the distance, instead just extract the vector representation between the two points
+                //Then translate the point by the vector in either direction
+                let vector = (first.0 - second.0, first.1 - second.1);
+                let mut first_out_of_bounds = false;
+                let mut second_out_of_bounds = false;
+
+                let mut f = first;
+                let mut s = *second;
+
+                //The antennas are now also antinodes!
+                antinodes.insert(f);
+                antinodes.insert(s);
+
+                //Repeatedly apply the vector to create new antinodes until we are out of bounds
+                while !(first_out_of_bounds && second_out_of_bounds) {
+                    let first_antinode = (f.0 + vector.0, f.1 + vector.1);
+                    let second_antinode = (s.0 - vector.0, s.1 - vector.1);
+
+                    //Record the antinode if its in the bounds of the map
+                    if !first_out_of_bounds 
+                    && first_antinode.0 >= 0 
+                    && first_antinode.0 < map_width
+                    && first_antinode.1 >= 0
+                    && first_antinode.1 < map_height {
+                        antinodes.insert(first_antinode);
+                        f = first_antinode;
+                    } else {
+                        first_out_of_bounds = true;
+                    }
+
+                    if !second_out_of_bounds
+                    && second_antinode.0 >= 0 
+                    && second_antinode.0 < map_width
+                    && second_antinode.1 >= 0
+                    && second_antinode.1 < map_height {
+                        antinodes.insert(second_antinode);
+                        s = second_antinode;
+                    } else {
+                        second_out_of_bounds = true;
+                    }
+                }
+            }
+         }
+    }
+
+    Ok(antinodes.len() as i64)
 }
