@@ -34,6 +34,7 @@ pub fn do_part1() -> anyhow::Result<i64> {
     let map_height = map.len() as i32;
     let bounds = (map_width, map_height);
 
+    //HashSet to record DISTINCT Origin->Summit hikes
     let mut summits_reached: HashSet<((usize, usize), (usize, usize))> = HashSet::new();
     trailheads.iter().for_each(|pos| {
         walk_trail_path(&map, bounds, *pos, *pos, (0, 1), &mut summits_reached);
@@ -155,6 +156,7 @@ pub fn do_part2() -> anyhow::Result<i64> {
     let map_height = map.len() as i32;
     let bounds = (map_width, map_height);
 
+    //Vector to record ALL Origin->Summit hikes, including different paths
     let mut summits_reached: Vec<((usize, usize), (usize, usize))> = Vec::new();
     trailheads.iter().for_each(|pos| {
         walk_trail_path_v(&map, bounds, *pos, *pos, (0, 1), &mut summits_reached);
