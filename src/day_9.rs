@@ -106,7 +106,92 @@ pub fn do_part2() -> anyhow::Result<i64> {
     println!("Reading input from {}", input_file.display());
 
     let file = File::open(input_file.clone())?;
-    let _reader = BufReader::new(file);
+    let mut reader = BufReader::new(file);
+    let mut input = String::new();
+    let mut checksum = 0_usize;
 
-    Ok(0)
+    if let Ok(_) = reader.read_line(&mut input) {
+        let mut disk_map: Vec<(usize, usize)> = input.chars()
+            .enumerate()
+            .map(|(idx, c)| (if idx % 2 == 0 { idx / 2 } else { 0 }, c.to_digit(10).unwrap() as usize))
+            .collect();
+        
+        //Reverse the disk map so we can insert at the end of the vector rather than at the start - makes indexing easier to manage
+        //So the back of the vector is actually the front of the disk
+        disk_map.reverse();
+
+        let mut rear_file_index: usize = 0;
+        let mut last_file_id_moved = disk_map[0].0 + 1;
+        loop {
+            //Note - Length will be growing as we copy blocks to the front of the disk!
+            if rear_file_index * 2 >= disk_map.len()-1 {
+                //STOP! When we either reach the end of the vector
+                break;
+            }
+
+            if disk_map[rear_file_index * 2].0 >= last_file_id_moved {
+                rear_file_index += 1;
+                //Skip any files that we've already processed
+                continue;
+            }
+
+            let (file_id, file_size) = disk_map[rear_file_index * 2];
+            //We could probably improve this by keeping track of where the space available starts
+            let mut i_space_index: i32 = (disk_map.len() - 2) as i32;
+
+            loop {
+                if i_space_index < (rear_file_index * 2 + 1) as i32 {
+                    //Stop searching for free space once we reach the file block, we won't move it
+                    //Next file
+                    rear_file_index += 1;
+                    break
+                }
+
+                let space_index = i_space_index as usize;
+
+                let space_available = disk_map[space_index].1;
+
+                if space_available >= file_size {
+                    let space_remaining = space_available - file_size;
+
+                    //The file fits in the space...
+                    //Space slot becomes 0 size
+                    disk_map[space_index].1 = 0;
+                    //Insert new file block
+                    disk_map.insert(space_index, (file_id, file_size));
+                    //Insert remaining space after the block
+                    disk_map.insert(space_index, (0, space_remaining));
+
+                    //Original file ID is set to 0 so it doesn't count when we sum up the checksum but we preserve the space it occupied
+                    disk_map.remove(rear_file_index * 2);
+                    //Collapse the space - unless we're the first item in the vector
+                    if rear_file_index > 0 {
+                        let next_space_size = disk_map[rear_file_index * 2 - 1].1;
+                        disk_map[rear_file_index * 2].1 += file_size + next_space_size;
+                        disk_map.remove(rear_file_index * 2 - 1);
+                    } else {
+                        //Remove the space at the end of the disk
+                        disk_map.remove(rear_file_index * 2);
+                    }
+                    //No need to increment rear_file_index as we are now pointing at the next file
+                    //since we shift the vector contents when we collapsed the space
+
+                    last_file_id_moved = file_id;
+                    break
+                } 
+
+                i_space_index -= 2;
+            }
+        }
+
+        disk_map.reverse();
+
+        let mut location = 0;
+        for (file_id, size) in &disk_map {
+            checksum += calc_checksum(*file_id, location..location+size);
+            location += size;
+        }
+    }
+
+    Ok(checksum as i64)
 }
