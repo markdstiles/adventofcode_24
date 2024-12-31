@@ -1,8 +1,8 @@
 //https://adventofcode.com/2024/day/12
 
-use std::{collections::HashSet, fs::File, io::{BufRead, BufReader}, ops::{Add, AddAssign}};
+use std::{collections::HashSet, fs::File, hash::Hash, io::{BufRead, BufReader}, ops::{Add, AddAssign}};
 
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 struct Point<T> {
     x: T,
     y: T,
@@ -54,10 +54,10 @@ impl<T> AddAssign for Point<T>
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Edge {
-    plot: Point<usize>,
     outside_dir: Point<i32>,
+    plot: Point<usize>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -83,8 +83,82 @@ impl Region {
         self.perimeter.len() as u32
     }
 
-    fn cost(&self) -> u32 {
+    fn number_of_sides(&mut self) -> u32 {
+        let directions = vec![
+            Point::new(0, -1),  //Up
+            Point::new(0, 1),   //down
+            Point::new(-1, 0),  //left
+            Point::new(1, 0),   //right
+        ];
+
+        let mut total_sides = 0;
+        //Prevent sorting when not required
+        let mut sorted_by_y = false;
+        self.perimeter.sort_by_key(|e| e.plot.x);
+
+        for direction in directions {
+
+            let mut previous_edge: Option<Point<usize>> = None;
+            let mut is_side_x = false;
+            let mut is_side_y = false;
+
+            //Sort by x or y depending on direction
+            if direction.x == 0 && !sorted_by_y {
+                self.perimeter.sort_by_key(|e| e.plot.y);
+                sorted_by_y = true;
+            } else if direction.y == 0 && sorted_by_y {
+                self.perimeter.sort_by_key(|e| e.plot.x);
+                sorted_by_y = false;
+            }
+
+            let mut sides = 0;
+            self.perimeter.iter()
+                .filter(|p| p.outside_dir == direction)
+                .for_each(|p| {
+
+                    if let Some(previous_edge) = previous_edge {
+                        //If we have a previous edge to compare...
+                        //Is the previous edge on the same side as the current edge?
+                        if p.plot.x == previous_edge.x && usize::abs_diff(p.plot.y,previous_edge.y) == 1 {
+                            if is_side_y {
+                                //We've changed sides
+                                sides += 1;
+                                is_side_y = false;
+                            }
+                            is_side_x = true;
+                        } else if p.plot.y == previous_edge.y && usize::abs_diff(p.plot.x,previous_edge.x) == 1 {
+                            if is_side_x {
+                                //We've changed sides
+                                sides += 1;
+                                is_side_x = false;
+                            }
+                            is_side_y = true;
+                        } else if is_side_x || is_side_y {
+                            //We were processing a side but came to the end of it
+                            sides += 1;
+                            is_side_x = false;
+                            is_side_y = false;
+                        } else {
+                            //Previous edge was a single side
+                            sides += 1;
+                        }
+                    }
+                    previous_edge = Some(p.plot);
+                });
+                //Add the last side
+                sides += 1;
+                total_sides += sides;
+        };
+
+        total_sides
+    }
+
+    fn cost_by_permeter_len(&self) -> u32 {
         self.area() * self.perimeter_len()
+    }
+
+    fn cost_by_side(&mut self) -> u32 {
+        self.area() * self.number_of_sides()
     }
 }
 
@@ -206,27 +280,7 @@ pub fn do_part1() -> anyhow::Result<i64> {
     farm.find_regions();
 
     let total_cost = farm.regions.iter()
-        .fold(0, |total, r| total + r.cost());
-
-    /* For debugging...
-    farm.regions.iter().for_each(|r| println!("A region of {} plants with price {} * {} = {}", r.plant, r.area(), r.perimeter_len(), r.cost()));
-
-    for region_idx in 0..farm.regions.len() {
-        let plant = farm.regions[region_idx].plant;
-        farm.fill_region(plant, region_idx);
-    }
-
-    println!("Map:")
-    farm.map.iter().for_each(|line| println!("{}", line.iter().collect::<String>()));
-
-    println!("Edges:")
-    farm.regions.iter().for_each(|r| {
-        println!("Region {}", r.plant);
-        r.perimeter.iter().for_each(|p| {
-            println!("{:?}", p);
-        });
-    });
-    */
+        .fold(0, |total, r| total + r.cost_by_permeter_len());
 
     Ok(total_cost as i64)
 }
@@ -242,5 +296,19 @@ pub fn do_part2() -> anyhow::Result<i64> {
     let file = File::open(input_file.clone())?;
     let reader = BufReader::new(file);
    
-    Ok(0)
+    let mut farm = Farm::new(reader.lines()
+    .map(|line| 
+        line.unwrap()
+            .chars()
+            .collect::<Vec<char>>()
+        )
+        .collect()
+    );
+
+    farm.find_regions();
+
+    let total_cost = farm.regions.iter_mut()
+        .fold(0, |total, r| total + r.cost_by_side());
+
+    Ok(total_cost as i64)
 }
