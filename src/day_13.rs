@@ -34,65 +34,36 @@ pub fn do_part1() -> anyhow::Result<i64> {
         reader.read_line(&mut target_line)?;
 
         
-        //Need to find a better way to do this in Rust!
-        let end_of_x_offset = button_a_line.find(',').unwrap() - 11;
-        let x = button_a_line.chars()
-            .skip(11)
-            .take(end_of_x_offset)
-            .collect::<String>()
-            .parse::<i32>()
-            .unwrap();
+        let button_a = MachinePos::from(button_a_line.trim().split('+').skip(1).map(|s| { 
+            if let Some(idx) = s.find(',') {
+                s[..idx].parse::<i32>().unwrap()
+            } else {
+                s.parse::<i32>().unwrap()
+            }
+        }).collect::<Vec<i32>>());
 
-        let y_start = button_a_line.find("Y+").unwrap() + 2;
-        let y = button_a_line.chars()
-            .skip(y_start)
-            .filter(|c| c.is_ascii_digit())
-            .collect::<String>()
-            .parse::<i32>()
-            .unwrap();
-        let button_a = MachinePos::new(x, y);
+        let button_b = MachinePos::from(button_b_line.trim().split('+').skip(1).map(|s| { 
+            if let Some(idx) = s.find(',') {
+                s[..idx].parse::<i32>().unwrap()
+            } else {
+                s.parse::<i32>().unwrap()
+            }
+        }).collect::<Vec<i32>>());
 
-        let end_of_x_offset = button_b_line.find(',').unwrap() - 11;
-        let x = button_b_line.chars()
-            .skip(11)
-            .take(end_of_x_offset)
-            .collect::<String>()
-            .parse::<i32>()
-            .unwrap();
-        
-        let y_start = button_b_line.find("Y+").unwrap() + 2;
-        let y = button_b_line.chars()
-            .skip(y_start)
-            .filter(|c| c.is_ascii_digit())
-            .collect::<String>()
-            .parse::<i32>()
-            .unwrap();
-        let button_b = MachinePos::new(x, y);
-
-        let end_of_x_offset = target_line.find(',').unwrap() - 9;
-        let x = target_line.chars()
-            .skip(9)
-            .take(end_of_x_offset)
-            .collect::<String>()
-            .parse::<i32>()
-            .unwrap();
-
-        let y_start = target_line.find("Y=").unwrap() + 2;
-        let y = target_line.chars()
-            .skip(y_start)
-            .filter(|c| c.is_ascii_digit())
-            .collect::<String>()
-            .parse::<i32>()
-            .unwrap();
-        let target = MachinePos::new(x, y);
+        let target = MachinePos::from(target_line.trim().split('=').skip(1).map(|s| { 
+            if let Some(idx) = s.find(',') {
+                s[..idx].parse::<i32>().unwrap()
+            } else {
+                s.parse::<i32>().unwrap()
+            }
+        }).collect::<Vec<i32>>());
 
         let mut result = test_machine(button_a, button_b, target);
-        
+
         if !result.is_empty() {
             result.sort_by_key(|o| o.cost);
             total_cost += result[0].cost;
         }
-
     }
     
     Ok(total_cost as i64)
@@ -108,6 +79,17 @@ impl MachinePos {
     fn new(x: i32, y: i32) -> MachinePos {
         MachinePos {
             x, y,
+        }
+    }
+
+    fn from(vals: Vec<i32>) -> MachinePos {
+        if vals.len() != 2 {
+            panic!()
+        }
+
+        MachinePos {
+            x: vals[0],
+            y: vals[1],
         }
     }
 }
@@ -185,5 +167,7 @@ pub fn do_part2() -> anyhow::Result<i64> {
     let file = File::open(input_file.clone())?;
     let reader = BufReader::new(file);
    
+    //To do look at Cramers Rule
+
     Ok(0)
 }
