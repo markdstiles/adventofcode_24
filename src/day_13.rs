@@ -1,6 +1,6 @@
 //https://adventofcode.com/2024/day/13
 
-use std::{fs::File, io::{BufRead, BufReader}};
+use std::{fs::File, io::{BufRead, BufReader}, ops::Div};
 
 pub fn do_part1() -> anyhow::Result<i64> {
     println!("Day 13 - Part 1:");
@@ -34,7 +34,7 @@ pub fn do_part1() -> anyhow::Result<i64> {
         reader.read_line(&mut target_line)?;
 
         
-        let button_a = MachinePos::from(button_a_line.trim().split('+').skip(1).map(|s| { 
+        let button_a: MachinePos<i32> = MachinePos::from(button_a_line.trim().split('+').skip(1).map(|s| { 
             if let Some(idx) = s.find(',') {
                 s[..idx].parse::<i32>().unwrap()
             } else {
@@ -42,7 +42,7 @@ pub fn do_part1() -> anyhow::Result<i64> {
             }
         }).collect::<Vec<i32>>());
 
-        let button_b = MachinePos::from(button_b_line.trim().split('+').skip(1).map(|s| { 
+        let button_b: MachinePos<i32> = MachinePos::from(button_b_line.trim().split('+').skip(1).map(|s| { 
             if let Some(idx) = s.find(',') {
                 s[..idx].parse::<i32>().unwrap()
             } else {
@@ -50,7 +50,7 @@ pub fn do_part1() -> anyhow::Result<i64> {
             }
         }).collect::<Vec<i32>>());
 
-        let target = MachinePos::from(target_line.trim().split('=').skip(1).map(|s| { 
+        let target: MachinePos<i32> = MachinePos::from(target_line.trim().split('=').skip(1).map(|s| { 
             if let Some(idx) = s.find(',') {
                 s[..idx].parse::<i32>().unwrap()
             } else {
@@ -70,19 +70,20 @@ pub fn do_part1() -> anyhow::Result<i64> {
 }
 
 #[derive(Debug)]
-struct MachinePos {
-    x: i32,
-    y: i32,
+struct MachinePos<T> {
+    x: T,
+    y: T,
 }
 
-impl MachinePos {
-    fn new(x: i32, y: i32) -> MachinePos {
+impl<T> MachinePos<T>
+where T: Copy {
+    fn new(x: T, y: T) -> MachinePos<T> {
         MachinePos {
             x, y,
         }
     }
 
-    fn from(vals: Vec<i32>) -> MachinePos {
+    fn from(vals: Vec<T>) -> MachinePos<T> {
         if vals.len() != 2 {
             panic!()
         }
@@ -95,13 +96,13 @@ impl MachinePos {
 }
 
 #[derive(Debug)]
-struct MachineResult {
-    button_a_count: i32,
-    button_b_count: i32,
-    cost: i32,
+struct MachineResult<T> {
+    button_a_count: T,
+    button_b_count: T,
+    cost: T,
 }
 
-fn test_machine(button_a: MachinePos, button_b: MachinePos, target: MachinePos) -> Vec<MachineResult> {
+fn test_machine(button_a: MachinePos<i32>, button_b: MachinePos<i32>, target: MachinePos<i32>) -> Vec<MachineResult<i32>> {
     let button_a_cost = 3;
     let button_b_cost = 1;
 
@@ -120,7 +121,7 @@ fn test_machine(button_a: MachinePos, button_b: MachinePos, target: MachinePos) 
         secondary_button = &button_b;
     }
 
-    let mut results: Vec<MachineResult> = Vec::new();
+    let mut results: Vec<MachineResult<i32>> = Vec::new();
     
     let mut iteration = target.x / primary_button.x;
     while iteration >= 0 {
@@ -156,7 +157,34 @@ fn test_machine(button_a: MachinePos, button_b: MachinePos, target: MachinePos) 
     results
 }
 
-pub fn do_part2() -> anyhow::Result<i64> {
+fn test_machine_with_cramers_rule(button_a: MachinePos<i128>, button_b: MachinePos<i128>, target: MachinePos<i128>) -> Option<MachineResult<i128>> {
+    let button_a_cost = 3;
+    let button_b_cost = 1;
+
+    //Given we're trying to test that both ax + ay = cx,cy and bx + by = cx,cy
+    //Apply Cramers Rule
+    //Calculate determinant - D = ax * by - bx * ay
+    let D = (button_a.x * button_b.y) - (button_b.x * button_a.y);
+    //Calculate Dx - Dx = cx * by - cy * bx
+    let Dx = (target.x * button_b.y) - (target.y * button_b.x);
+    //Calculate Dy - Dy = ax * cy - ay * cx
+    let Dy = (button_a.x * target.y) - (button_a.y * target.x);
+
+    //Apply the determinant to Dx & Dy - does it resolve to a whole number?
+    let Dx_valid = Dx % D == 0;
+    let Dy_valid = Dy % D == 0;
+
+    if Dx_valid && Dy_valid {
+        let button_a_count = Dx / D; 
+        let button_b_count = Dy / D;
+        let cost = (button_a_cost * button_a_count) + (button_b_cost * button_b_count);
+        Some(MachineResult { button_a_count, button_b_count, cost })
+    } else {
+        None
+    }
+}
+
+pub fn do_part2() -> anyhow::Result<i128> {
     println!("Day 13 - Part 2:");
     
     let mut input_file = std::env::current_dir()?;
@@ -165,9 +193,61 @@ pub fn do_part2() -> anyhow::Result<i64> {
     println!("Reading input from {}", input_file.display());
 
     let file = File::open(input_file.clone())?;
-    let reader = BufReader::new(file);
+    let mut reader = BufReader::new(file);
    
-    //To do look at Cramers Rule
+    let mut total_cost: i128 = 0;
 
-    Ok(0)
+    loop {
+        let mut button_a_line = String::new();
+
+        if reader.read_line(&mut button_a_line).is_err() {
+            //Probably end of file
+            break;
+        }
+        if button_a_line.is_empty() {
+            break;
+        }
+
+        let mut button_b_line = String::new();
+        reader.read_line(&mut button_b_line)?;
+        let mut target_line = String::new();
+        reader.read_line(&mut target_line)?;
+        //Read blank line
+        reader.read_line(&mut target_line)?;
+
+        
+        let button_a = MachinePos::from(button_a_line.trim().split('+').skip(1).map(|s| { 
+            if let Some(idx) = s.find(',') {
+                s[..idx].parse::<i128>().unwrap()
+            } else {
+                s.parse::<i128>().unwrap()
+            }
+        }).collect::<Vec<i128>>());
+
+        let button_b = MachinePos::from(button_b_line.trim().split('+').skip(1).map(|s| { 
+            if let Some(idx) = s.find(',') {
+                s[..idx].parse::<i128>().unwrap()
+            } else {
+                s.parse::<i128>().unwrap()
+            }
+        }).collect::<Vec<i128>>());
+
+        let mut target = MachinePos::from(target_line.trim().split('=').skip(1).map(|s| { 
+            if let Some(idx) = s.find(',') {
+                s[..idx].parse::<i128>().unwrap()
+            } else {
+                s.parse::<i128>().unwrap()
+            }
+        }).collect::<Vec<i128>>());
+
+        target.x += 10000000000000;
+        target.y += 10000000000000;
+
+        //Brute force isn't going to cut it
+        if let Some(result) = test_machine_with_cramers_rule(button_a, button_b, target) {
+            total_cost += result.cost;
+        }
+    }
+    
+    Ok(total_cost)
 }
