@@ -1,7 +1,7 @@
 //https://adventofcode.com/2024/day/14
 
 use crate::input_utils::parse_formatted;
-use std::{fmt::Display, fs::File, io::{BufRead, BufReader}, ops::AddAssign};
+use std::{fmt::Display, fs::File, io::{BufRead, BufReader, Write}, ops::AddAssign};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Robot {
@@ -141,5 +141,67 @@ pub fn do_part2() -> anyhow::Result<i64> {
     let file = File::open(input_file.clone())?;
     let reader = BufReader::new(file);
 
-    Ok(0)
+    let mut robots: Vec<Robot> = Vec::new();
+
+    for line in reader.lines() {
+        let line = line?;
+
+        let robot_params: Vec<i32> = parse_formatted(line, "p={},{} v={},{}".into())
+            .iter()
+            .map(|s| s.parse::<i32>().unwrap())
+            .collect();
+        robots.push(Robot::new(
+            robot_params[0],
+            robot_params[1],
+            robot_params[2],
+            robot_params[3],
+        ));
+    }
+
+    let width: i32 = 101;
+    let height: i32 = 103;
+    let mut map: Vec<Vec<i32>> = vec![vec![0; 101]; 103];
+
+    let mut output_file = std::env::current_dir()?;
+    output_file.push("output\\day14_map.txt");
+
+    println!("Writing output to {}", output_file.display());
+
+    let mut file = File::create(output_file.clone())?;
+
+    //Every 103 seconds from 57 secs onwards seems to be where the pattern is forming
+    //Every 101 seconds from 98 secs onwards seems to be where the pattern is forming
+
+    //Mark-I eyeball evaluation of output!
+    for iteration in 0..10000 {
+        for robot in &mut robots {
+            if map[robot.position.y as usize][robot.position.x as usize] != 0 {
+                map[robot.position.y as usize][robot.position.x as usize] -= 1;
+            }
+
+            robot.position += robot.velocity;
+            robot.ensure_position_wrapped(width, height);
+
+            map[robot.position.y as usize][robot.position.x as usize] += 1;
+        }
+
+        if (iteration - 98) % 101 == 0 {
+            write_map_to_file(&mut file, &map, iteration)?;
+        }
+    }
+    
+    Ok(7371)
+}
+
+fn write_map_to_file(file: &mut File, map: &Vec<Vec<i32>>, iteration: i32) -> anyhow::Result<()> {
+    writeln!(file, "Iteration: {iteration}")?;
+
+    for row in map {
+        for col in row {
+            write!(file, "{}", if *col == 0 { " " } else { "*" })?;
+        }
+        writeln!(file)?;
+    }
+
+    Ok(())
 }
