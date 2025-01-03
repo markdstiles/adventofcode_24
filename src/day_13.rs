@@ -1,6 +1,6 @@
 //https://adventofcode.com/2024/day/13
 
-use std::{fs::File, io::{BufRead, BufReader}, ops::Div};
+use std::{fs::File, io::{BufRead, BufReader}};
 
 pub fn do_part1() -> anyhow::Result<i64> {
     println!("Day 13 - Part 1:");

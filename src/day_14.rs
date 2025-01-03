@@ -1,7 +1,8 @@
 //https://adventofcode.com/2024/day/14
 
 use crate::input_utils::parse_formatted;
-use std::{fmt::Display, fs::File, io::{BufRead, BufReader, Write}, ops::AddAssign};
+use crate::misc_types::*;
+use std::{fs::File, io::{BufRead, BufReader, Write}};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Robot {
@@ -30,45 +31,6 @@ impl Robot {
         if self.position.y >= map_height {
             self.position.y -= map_height;
         }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct Vector2D {
-    x: i32,
-    y: i32,
-}
-
-impl Vector2D {
-    fn new(x: i32, y: i32) -> Vector2D {
-        Vector2D { x, y }
-    }
-}
-
-impl AddAssign for Vector2D {
-    fn add_assign(&mut self, other: Self) {
-        self.x += other.x;
-        self.y += other.y;
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct Rect {
-    left: i32,
-    top: i32,
-    right: i32,
-    bottom: i32,
-}
-
-impl Rect {
-    fn new(left: i32, top: i32, right: i32, bottom: i32) -> Rect {
-        Rect { left, top, right, bottom }
-    }
-}
-
-impl Display for Rect {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Rect(L:{},T:{},R:{},B:{})", self.left, self.top, self.right, self.bottom)
     }
 }
 
@@ -169,7 +131,7 @@ pub fn do_part2() -> anyhow::Result<i64> {
 
     let mut file = File::create(output_file.clone())?;
 
-    //Every 103 seconds from 57 secs onwards seems to be where the pattern is forming
+    //Every 103 seconds from 57 secs onwards seems to be where a pattern is forming
     //Every 101 seconds from 98 secs onwards seems to be where the pattern is forming
 
     //Mark-I eyeball evaluation of output!
@@ -189,7 +151,7 @@ pub fn do_part2() -> anyhow::Result<i64> {
             write_map_to_file(&mut file, &map, iteration)?;
         }
     }
-    
+
     Ok(7371)
 }
 

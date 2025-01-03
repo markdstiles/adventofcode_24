@@ -1,58 +1,7 @@
 //https://adventofcode.com/2024/day/12
 
-use std::{collections::HashSet, fs::File, hash::Hash, io::{BufRead, BufReader}, ops::{Add, AddAssign}};
-
-#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-struct Point<T> {
-    x: T,
-    y: T,
-}
-
-impl<T> Point<T> {
-    fn new(x: T, y: T) -> Point<T> {
-        Point {
-            x,
-            y,
-        }
-    }
-}
-
-impl From<Point<i32>> for Point<usize> {
-    fn from(value: Point<i32>) -> Self {
-        Point {
-            x: value.x.try_into().unwrap(),
-            y: value.y.try_into().unwrap(),
-        }
-    }
-}
-
-impl From<Point<usize>> for Point<i32> {
-    fn from(value: Point<usize>) -> Self {
-        Point {
-            x: value.x.try_into().unwrap(),
-            y: value.y.try_into().unwrap(),
-        }
-    }
-}
-
-impl<T: Add<Output = T>> Add for Point<T> {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self::Output {
-        Self {
-            x: self.x + other.x,
-            y: self.y + other.y,
-        }
-    }
-}
-
-impl<T> AddAssign for Point<T>
-    where T: AddAssign, {
-    fn add_assign(&mut self, other: Self) {
-        self.x += other.x;
-        self.y += other.y;
-    }
-}
+use crate::misc_types::*;
+use std::{collections::HashSet, fs::File, io::{BufRead, BufReader}};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Edge {
