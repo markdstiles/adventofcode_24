@@ -103,7 +103,7 @@ fn display_map(map: &Vec<Vec<char>>) {
     }
 }
 
-fn add_obstacles(map: &mut Vec<Vec<char>>, obstacle_positions: &HashSet<(usize, usize)>) {
+fn add_obstacles(map: &mut [Vec<char>], obstacle_positions: &HashSet<(usize, usize)>) {
     for (x, y) in obstacle_positions {
         map[*y][*x] = 'O';
     }

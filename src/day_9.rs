@@ -110,7 +110,7 @@ pub fn do_part2() -> anyhow::Result<i64> {
     let mut input = String::new();
     let mut checksum = 0_usize;
 
-    if let Ok(_) = reader.read_line(&mut input) {
+    if reader.read_line(&mut input).is_ok() {
         let mut disk_map: Vec<(usize, usize)> = input.chars()
             .enumerate()
             .map(|(idx, c)| (if idx % 2 == 0 { idx / 2 } else { 0 }, c.to_digit(10).unwrap() as usize))

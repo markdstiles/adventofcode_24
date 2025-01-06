@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 //https://adventofcode.com/2024/day/10
 
 use std::{collections::HashSet, fs::File, io::{BufRead, BufReader}};

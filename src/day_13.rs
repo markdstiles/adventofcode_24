@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+#![allow(dead_code)]
 //https://adventofcode.com/2024/day/13
 
 use std::{fs::File, io::{BufRead, BufReader}};

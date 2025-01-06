@@ -83,7 +83,7 @@ pub fn do_part1() -> anyhow::Result<i64> {
                         //Should only be one entity occupying an x,y location - and none if it is unoccupied
                         if let Some((idx, collided_entity)) = entities.iter()
                             .enumerate()
-                            .find(|(idx, e)| e.position == new_pos) {
+                            .find(|(_, e)| e.position == new_pos) {
                             match collided_entity.entity_type {
                                 EntityType::Box => {
                                     new_pos = collided_entity.position + direction; //Update new pos - we'll need to check this location too
@@ -145,8 +145,6 @@ pub fn do_part2() -> anyhow::Result<i64> {
     //Boxes move a cell at a time and now can overlap other boxes
     //When the robot pushes an overlapped box, both need to move!
     //Entities origin cell will be on its left side
-
-    let mut debug_iteration = 0;
 
     //Parse the map and create a list of entities with their locations
     for (y, line) in reader.lines().enumerate() {
