@@ -1,4 +1,4 @@
-use std::{fmt::Display, ops::{Add, AddAssign}};
+use std::{fmt::Display, ops::{Add, AddAssign, Sub, SubAssign}};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Vector2D {
@@ -52,11 +52,23 @@ pub struct Point<T> {
     pub y: T,
 }
 
-impl<T> Point<T> {
+impl<T> Point<T> 
+    where
+        T: Sized,
+        T: Ord,
+        T: Copy {
+            
     pub fn new(x: T, y: T) -> Point<T> {
         Point {
             x,
             y,
+        }
+    }
+
+    pub fn clamp(self, min: T, max: T) -> Point<T> {
+        Point {
+            x: self.x.clamp(min, max),
+            y: self.y.clamp(min, max),
         }
     }
 }
@@ -90,10 +102,36 @@ impl<T: Add<Output = T>> Add for Point<T> {
     }
 }
 
+impl<T: Sub<Output = T>> Sub for Point<T> {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self::Output {
+        Self {
+            x: self.x - other.x,
+            y: self.y - other.y,
+        }
+    }
+}
+
 impl<T> AddAssign for Point<T>
     where T: AddAssign, {
     fn add_assign(&mut self, other: Self) {
         self.x += other.x;
         self.y += other.y;
+    }
+}
+
+impl<T> SubAssign for Point<T>
+    where T: SubAssign, {
+    fn sub_assign(&mut self, other: Self) {
+        self.x -= other.x;
+        self.y -= other.y;
+    }
+}
+
+impl<T> Display for Point<T>
+where T: Display {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(x:{},y:{})", self.x, self.y)
     }
 }
