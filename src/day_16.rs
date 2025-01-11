@@ -88,91 +88,19 @@ fn get_direction(p1: Point<i32>, p2: Point<i32>) -> Point<i32> {
     diff
 }
 
-// Dijkstra's shortest path algorithm.
-
-// Start at `start` and use `dist` to track the current shortest distance
-// to each node. This implementation isn't memory-efficient as it may leave duplicate
-// nodes in the queue. It also uses `usize::MAX` as a sentinel value,
-// for a simpler implementation.
-fn shortest_path(adj_list: &[Node], start: usize, goal: usize, start_direction: Point<i32>) -> Option<usize> {
-    // dist[node] = current shortest distance from `start` to `node`
-    let mut dist: Vec<_> = (0..adj_list.len()).map(|_| usize::MAX).collect();
-    let mut heap = BinaryHeap::new();
-
-    // We're at `start`, with a zero cost
-    dist[start] = 0;
-    heap.push(State { cost: 0, node_id: start, prev_node_id: None });
-
-    // Examine the frontier with lower cost nodes first (min-heap)
-    while let Some(State { cost, node_id, prev_node_id }) = heap.pop() {
-        // Alternatively we could have continued to find all shortest paths
-        if node_id == goal { return Some(cost); }
-
-        // Important as we may have already found a better way
-        if cost > dist[node_id] || !adj_list[node_id].is_valid { continue; }
-
-        // For each node we can reach, see if we can find a way with
-        // a lower cost going through this node
-        for edge in &adj_list[node_id].edges {
-            let current_direction = if let Some(prev_node_id) = prev_node_id {
-                get_direction(adj_list[prev_node_id].position.into(), adj_list[node_id].position.into())
-            } else {
-                start_direction
-            };
-
-            let edge_cost = calc_cost(adj_list[node_id].position, adj_list[edge.to].position, current_direction);
-            let next = State { cost: cost + edge_cost, node_id: edge.to, prev_node_id: Some(node_id) };
-
-            // If so, add it to the frontier and continue
-            if next.cost < dist[next.node_id] {
-                heap.push(next);
-                // Relaxation, we have now found a better way
-                dist[next.node_id] = next.cost;
-            }
-        }
-    }
-
-    // Goal not reachable
-    None
-}
-
-pub fn do_part1() -> anyhow::Result<i64> {
-    println!("Day 16 - Part 1:");
-    
-    let mut input_file = std::env::current_dir()?;
-    input_file.push("input\\day16.txt");
-
-    println!("Reading input from {}", input_file.display());
-
-    let file = File::open(input_file.clone())?;
-    let reader = BufReader::new(file);
-
-    //Space = -1, Wall = -2, Start = -3, End = -4
-    let mut map: Vec<Vec<i32>> = vec![];
-
-    for line in reader.lines() {
-        let line = line?;
-
-        let row: Vec<i32> = line.chars().map(|c| match c {
-            '#' => -2,
-            'S' => -3,
-            'E' => -4,
-            _ => -1,
-        }).collect();
-        map.push(row);
-    }
-
-    let bounds: Point<usize> = Point::new(map[0].len(), map.len());
-    let mut start: usize = 0;
-    let mut end: usize = 0;
-
-    let mut nodes: Vec<Node> = vec![];
-
+//Find nodes and edges and update map with their node id at their location
+//All positive numbers in the map are nodes id's
+fn find_nodes(map: &mut [Vec<i32>], nodes: &mut Vec<Node>) -> (usize, usize) {
     //Convert the map into a set of nodes and edges
     //First: Identify the nodes, these are:
     // - the start and end locations
     // - any point that is a junction or turn (not a corridor)
     // - any point that is a dead end
+
+    let bounds: Point<usize> = Point::new(map[0].len(), map.len());
+
+    let mut start: usize = 0;
+    let mut end: usize = 0;
 
     for y in 1..bounds.y-1 {
         for x in 1..bounds.x-1 {
@@ -215,7 +143,7 @@ pub fn do_part1() -> anyhow::Result<i64> {
             };
         }
     }
-
+    
     let directions: [Point<i32>; 4] = [
         Point::new(0, -1),
         Point::new(1, 0),
@@ -286,9 +214,88 @@ pub fn do_part1() -> anyhow::Result<i64> {
         }
     }
 
-    let start_direction = directions[1];    //Start facing East
+    (start, end)
+}
 
-    //Perform A* Search to find shortest path to target
+// Dijkstra's shortest path algorithm
+
+// Start at `start` and use `dist` to track the current shortest distance
+// to each node. This implementation isn't memory-efficient as it may leave duplicate
+// nodes in the queue. It also uses `usize::MAX` as a sentinel value,
+// for a simpler implementation.
+fn shortest_path(adj_list: &[Node], start: usize, goal: usize, start_direction: Point<i32>) -> Option<usize> {
+    // dist[node] = current shortest distance from `start` to `node`
+    let mut dist: Vec<_> = (0..adj_list.len()).map(|_| usize::MAX).collect();
+    let mut heap = BinaryHeap::new();
+
+    // We're at `start`, with a zero cost
+    dist[start] = 0;
+    heap.push(State { cost: 0, node_id: start, prev_node_id: None });
+
+    // Examine the frontier with lower cost nodes first (min-heap)
+    while let Some(State { cost, node_id, prev_node_id }) = heap.pop() {
+        // Alternatively we could have continued to find all shortest paths
+        if node_id == goal { return Some(cost); }
+
+        // Important as we may have already found a better way
+        if cost > dist[node_id] || !adj_list[node_id].is_valid { continue; }
+
+        // For each node we can reach, see if we can find a way with
+        // a lower cost going through this node
+        for edge in &adj_list[node_id].edges {
+            let current_direction = if let Some(prev_node_id) = prev_node_id {
+                get_direction(adj_list[prev_node_id].position.into(), adj_list[node_id].position.into())
+            } else {
+                start_direction
+            };
+
+            let edge_cost = calc_cost(adj_list[node_id].position, adj_list[edge.to].position, current_direction);
+            let next = State { cost: cost + edge_cost, node_id: edge.to, prev_node_id: Some(node_id) };
+
+            // If so, add it to the frontier and continue
+            if next.cost < dist[next.node_id] {
+                heap.push(next);
+                // Relaxation, we have now found a better way
+                dist[next.node_id] = next.cost;
+            }
+        }
+    }
+
+    // Goal not reachable
+    None
+}
+
+pub fn do_part1() -> anyhow::Result<i64> {
+    println!("Day 16 - Part 1:");
+    
+    let mut input_file = std::env::current_dir()?;
+    input_file.push("input\\day16.txt");
+
+    println!("Reading input from {}", input_file.display());
+
+    let file = File::open(input_file.clone())?;
+    let reader = BufReader::new(file);
+    let mut map: Vec<Vec<i32>> = vec![];
+
+    for line in reader.lines() {
+        let line = line?;
+
+        let row: Vec<i32> = line.chars().map(|c| match c {
+            '#' => -2,  //Wall
+            'S' => -3,  //Start location
+            'E' => -4,  //End location
+            _ => -1,    //Empty space
+        }).collect();
+        map.push(row);
+    }
+
+    let mut nodes: Vec<Node> = vec![];
+
+    let (start, end) = find_nodes(&mut map, &mut nodes);
+
+    //Start facing East
+    let start_direction = Point::new(1, 0);
+
     if let Some(shortest_path_cost) = shortest_path(&nodes, start, end, start_direction) {
         Ok(shortest_path_cost as i64)
     } else {
@@ -306,8 +313,6 @@ pub fn do_part2() -> anyhow::Result<i64> {
 
     let file = File::open(input_file.clone())?;
     let reader = BufReader::new(file);
-
-    //Space = 0, Wall = 1, Start = 2, End = 3
     let mut map: Vec<Vec<u8>> = vec![];
 
     for line in reader.lines() {
