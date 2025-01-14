@@ -1,6 +1,6 @@
 //https://adventofcode.com/2024/day/17
 
-use std::{cmp::Ordering, collections::HashSet};
+use std::collections::HashSet;
 
 struct ComputerState {
     register_a: usize,
