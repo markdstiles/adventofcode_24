@@ -159,6 +159,8 @@ pub fn do_part2() -> anyhow::Result<i64> {
     //This is brute force approach and will run for a long time but gets to the answer within 3-5mins
     //202366627359274.25
 
+    //TODO: take a look at Bradley Sward's approach https://www.youtube.com/watch?v=ytchbFqHUeo&t=330s&pp=ygURYW9jIGRheSAxNyBwYXJ0IDI%3D
+
     if let Some(input) = brute_force(&target) {
         return Ok(input as i64);
     }

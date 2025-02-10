@@ -18,16 +18,17 @@ pub mod day_15;
 pub mod day_16;
 pub mod day_17;
 pub mod day_18;
+pub mod day_19;
 
 use colored::Colorize;
 
 fn main() -> anyhow::Result<()> {
     
-    if let Ok(answer) = day_18::do_part1() {
+    if let Ok(answer) = day_19::do_part1() {
         println!("{} {}", "Part 1 answer:".green(), answer.to_string().blue().bold());
     }
 
-    if let Ok(answer) = day_18::do_part2() {
+    if let Ok(answer) = day_19::do_part2() {
         println!("{} {}", "Part 2 answer:".green(), answer.to_string().blue().bold());
     }
 
