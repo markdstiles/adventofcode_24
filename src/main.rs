@@ -19,6 +19,12 @@ pub mod day_16;
 pub mod day_17;
 pub mod day_18;
 pub mod day_19;
+pub mod day_20; //TODO
+pub mod day_21; //TODO
+pub mod day_22; //TODO
+pub mod day_23; //TODO
+pub mod day_24; //TODO
+pub mod day_25; //TODO
 
 use colored::Colorize;
 
