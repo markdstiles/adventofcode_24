@@ -73,6 +73,12 @@ impl<T> Point<T>
     }
 }
 
+impl Point<i32> {
+    pub fn inside(self, bounding_box: Rect) -> bool {
+        bounding_box.is_inside(self)
+    }
+}
+
 impl From<Point<i32>> for Point<usize> {
     fn from(value: Point<i32>) -> Self {
         Point {
